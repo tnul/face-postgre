@@ -3,7 +3,7 @@ import dlib
 import cv2
 import face_recognition
 import os
-import postgresql
+import psycopg2
 
 if len(sys.argv) < 2:
     print("Usage: face-add <image>")
@@ -25,9 +25,9 @@ print("Found {} faces in the image file {}".format(len(detected_faces), file_nam
 
 if not os.path.exists("./.faces"):
     os.mkdir("./.faces")
-
-db = postgresql.open('pq://user:pass@localhost:5434/db')
-
+"host='localhost' dbname='my_database' user='postgres' password='secret'"
+connection_db = psycopg2.connect("user='jfaceprojectuser' password='jfaceprojectpassword' host='172.17.0.2' dbname='jfaceprojectdb'")
+db=connection_db.cursor()
 # Loop through each face we found in the image
 for i, face_rect in enumerate(detected_faces):
     # Detected faces are returned as an object with the coordinates
@@ -38,12 +38,15 @@ for i, face_rect in enumerate(detected_faces):
     encodings = face_recognition.face_encodings(crop)
 
     if len(encodings) > 0:
-        query = "INSERT INTO vectors (file, vec_low, vec_high) VALUES ('{}', CUBE(array[{}]), CUBE(array[{}]))".format(
+        query = "INSERT INTO vectors (file, vec_low, vec_high) VALUES ('{}', CUBE(array[{}]), CUBE(array[{}]));".format(
             file_name,
             ','.join(str(s) for s in encodings[0][0:63]),
             ','.join(str(s) for s in encodings[0][64:127]),
         )
         db.execute(query)
-
+        print(query)
+        connection_db.commit()
     cv2.imwrite("./.faces/aligned_face_{}_{}_crop.jpg".format(file_name.replace('/', '_'), i), crop)
 
+if connection_db is not None:
+    connection_db.close()

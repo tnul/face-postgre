@@ -3,7 +3,7 @@ import dlib
 import cv2
 import face_recognition
 import os
-import postgresql
+import psycopg2
 
 if len(sys.argv) < 2:
     print("Usage: face-find <image>")
@@ -26,7 +26,8 @@ print("Found {} faces in the image file {}".format(len(detected_faces), file_nam
 if not os.path.exists("./.faces"):
     os.mkdir("./.faces")
 
-db = postgresql.open('pq://user:pass@localhost:5434/db')
+connection_db = psycopg2.connect("user='jfaceprojectuser' password='jfaceprojectpassword' host='172.17.0.2' dbname='jfaceprojectdb'")
+db=connection_db.cursor()
 
 # Loop through each face we found in the image
 for i, face_rect in enumerate(detected_faces):
@@ -39,12 +40,22 @@ for i, face_rect in enumerate(detected_faces):
     encodings = face_recognition.face_encodings(crop)
     if len(encodings) > 0:
         query = "SELECT file FROM vectors ORDER BY " + \
-                "(CUBE(array[{}]) <-> vec_low) + (CUBE(array[{}]) <-> vec_high) ASC LIMIT 1".format(
+                "(CUBE(array[{}]) <-> vec_low) + (CUBE(array[{}]) <-> vec_high) ASC LIMIT 1 ;".format(
             ','.join(str(s) for s in encodings[0][0:63]),
             ','.join(str(s) for s in encodings[0][64:127]),
         )
-        print(db.query(query))
+        print(query)
+        db.execute(query)
+        print("The number of parts: ", db.rowcount)
+        row = db.fetchone()
+
+        while row is not None:
+            print(row)
+            row = db.fetchone()
+
+        db.close()
     else:
         print("No encodings")
 
-
+if connection_db is not None:
+    connection_db.close()
