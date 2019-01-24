@@ -7,7 +7,7 @@ A small demo based on [`ageitgey/face_recognition`](https://github.com/ageitgey/
 Deps:
 
 ```
-pip install py-postgresql face_recognition opencv-python
+pip install py-postgresql psycopg2 face_recognition opencv-python
 ```
 
 Start PostgreSQL 9.6 in docker or natively
